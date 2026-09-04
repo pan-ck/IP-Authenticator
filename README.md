@@ -15,8 +15,7 @@
 
 3. Setup
     .env file:
-    Make a .env file in root directory.
-    Put the API key into the directory. Name it ABUSEIPDB_API_KEY
+    ABUSEIPDB_API_KEY=your_key
 
     in bash:
     python3 -m venv env
