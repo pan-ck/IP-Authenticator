@@ -1,3 +1,6 @@
 env/
 .env
 logs/
+ioc.csv
+instruction.md
+abuse_db.txt
