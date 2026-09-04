@@ -13,13 +13,13 @@ ABUSE_DB_TXT = ROOT / 'abuse_db.txt' # the path to abuse_db.txt
 LOG_DIR = ROOT / 'logs' # the path to the log directory
 
 # loading the .env file
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / '.env')
 
 # loading the API key from the .env file
-AbuseIPDB_API_KEY = os.getenv("ABUSEIPDB_API_KEY")
+AbuseIPDB_API_KEY = os.getenv('ABUSEIPDB_API_KEY')
 # checking if the API key is loaded
 if not AbuseIPDB_API_KEY:
-    raise ValueError("ABUSEIPDB_API_KEY is missing; save the project .env file")
+    raise ValueError('ABUSEIPDB_API_KEY is missing')
 
 # API endpoint
 ABUSEIPDB_API_ENDPOINT = "https://api.abuseipdb.com/api/v2/check"
@@ -59,7 +59,12 @@ def check_ips_abuseipdb(ips: list, api_key: str) -> list:
             'ipAddress': ip,
             'verbose': True,
         }
-        response = requests.get(ABUSEIPDB_API_ENDPOINT, headers=headers, params=query_string)
+        response = requests.get(
+            ABUSEIPDB_API_ENDPOINT,
+            headers=headers,
+            params=query_string,
+            timeout=20,
+        )
         response.raise_for_status() # raise an exception if the request is not successful
         response = response.json() # convert json to dict
         results.append(extract_API_data(response))
@@ -68,31 +73,28 @@ def check_ips_abuseipdb(ips: list, api_key: str) -> list:
 
 # function to get the ioc list from the csv file
 def get_ioc_dict() -> list:
-        with open(IOC_CSV, 'r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            # a list including ioc dictionaries
-            return_list = list(reader)
-            return return_list 
+    with open(IOC_CSV, 'r', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        # a list including ioc dictionaries
+        return_list = list(reader)
+        return return_list 
 
 # function to get the abuse db list from the txt file
 def get_test_ip_list() -> list:
-        with open(ABUSE_DB_TXT, 'r', encoding='utf-8') as file:
-            return_list = []
-            # append every line to the list
-            for line in file:
-                return_list.append(line.strip())
-            return return_list
+    with open(ABUSE_DB_TXT, 'r', encoding='utf-8') as file:
+        return_list = []
+        # append every line to the list
+        for line in file:
+            return_list.append(line.strip())
+        return return_list
 
 # a function to log the sorted data into a log file
 def save_log(results: list) -> None:
     LOG_DIR.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     log_file = LOG_DIR / f"log_{timestamp}.json"
-    try:
-        with open(log_file, 'x', encoding='utf-8') as file:
-            file.write(json.dumps(results, indent=4))
-    except Exception as e:
-        print(f"Error when saving the log: {e}")
+    with open(log_file, 'x', encoding='utf-8') as file:
+        file.write(json.dumps(results, indent=4))
 
 # a function to check if the IP is in the ioc list
 # return the ioc data dictionary if yes
@@ -132,7 +134,7 @@ def main():
 
     # check the IPs using AbuseIPDB API
     abuseipdb_results = check_ips_abuseipdb(test_ip_list, AbuseIPDB_API_KEY)
-    
+
     # save the abuseipdb results to a log file
     save_log(abuseipdb_results)
 
