@@ -20,7 +20,6 @@ AbuseIPDB_API_KEY = os.getenv("ABUSEIPDB_API_KEY")
 # checking if the API key is loaded
 if not AbuseIPDB_API_KEY:
     raise ValueError("ABUSEIPDB_API_KEY is missing; save the project .env file")
-print("AbuseIPDB_API_KEY loaded")
 
 # API endpoint
 ABUSEIPDB_API_ENDPOINT = "https://api.abuseipdb.com/api/v2/check"
@@ -46,6 +45,7 @@ def sort_API_data(data_list: list) -> list:
     return sorted_data
 
 # function to check the list of ips against the AbuseIPDB API
+# return a sorted list of dict{}. including IP, score, countryCode
 def check_ips_abuseipdb(ips: list, api_key: str) -> list:
     headers = {
         'Accept': 'application/json',
@@ -99,7 +99,36 @@ def save_log(results: list) -> None:
             file.write(json.dumps(results, indent=4))
     except Exception as e:
         print(f"Error when saving the log: {e}")
-    print(f"Log saved to: {log_file}")
+    print(f"Log saved to: \n{log_file}")
+
+# a function to check if the IP is in the ioc list
+def is_in_ioc(ip: str, ioc_list : list) -> dict:
+    for item in ioc_list:
+        if item['ip'] == ip:
+            return item
+    return None
+
+# input an IP and an ioc data dictionary, output true if IP is allow, else false
+def check_ip_ioc_rule(ip, ioc_data: dict) -> bool:
+    if ioc_data['rule'] == 'allow':
+        return True
+    else:
+        return False
+
+# input abuseipdb results and ioc list, return a list of valid IPs with details
+def ip_authenticator(abuseipdb_results: list, ioc_list: list) -> list:
+    results_list = []
+    for result in abuseipdb_results:
+        ioc_data = is_in_ioc(result['ipAddress'], ioc_list)
+        # handle the case where the IP is in the ioc list
+        if ioc_data:
+            if check_ip_ioc_rule(result['ipAddress'], ioc_data):
+                results_list.append(result) # if the IP is valid, add the result to the results_list
+            continue # if the IP is not valid, continue to the next IP
+        # handle the case where the IP is not in the ioc list
+        if result['abuseConfidenceScore'] <= 25:
+            results_list.append(result) 
+    return results_list
 
 def main():
     # a list including ioc dictionaries
@@ -118,6 +147,11 @@ def main():
 
     # save the log
     save_log(abuseipdb_results)
+
+    # authenticate the IPs
+    authenticated_ips = ip_authenticator(abuseipdb_results, ioc_list)
+    # print the authenticated ips
+    print(f"authenticated ips: \n{json.dumps(authenticated_ips, indent=4)}")
 
 if __name__ == "__main__":
     main()
