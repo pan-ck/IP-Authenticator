@@ -4,11 +4,13 @@ import os
 from dotenv import load_dotenv
 import json
 import requests
+from datetime import datetime
 
 # setting paths
 ROOT = Path(__file__).resolve().parent.parent
 IOC_CSV = ROOT / 'ioc.csv' # the path to ioc.csv
 ABUSE_DB_TXT = ROOT / 'abuse_db.txt' # the path to abuse_db.txt
+LOG_DIR = ROOT / 'logs' # the path to the log directory
 
 # loading the .env file
 load_dotenv(ROOT / ".env")
@@ -87,13 +89,35 @@ def get_test_ip_list() -> list:
     except Exception as e:
         print(f"Error when opening the file: {e}")
 
-# a list including ioc dictionaries
-ioc_list = get_ioc_dict()
-# a list including abuse db ips
-test_ip_list = get_test_ip_list()
+# a function to log the sorted data into a log file
+def save_log(results: list) -> None:
+    LOG_DIR.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    log_file = LOG_DIR / f"log_{timestamp}.json"
+    try:
+        with open(log_file, 'w', encoding='utf-8') as file:
+            file.write(json.dumps(results, indent=4))
+    except Exception as e:
+        print(f"Error when saving the log: {e}")
+    print(f"Log saved to: {log_file}")
 
-print(f"test ip list: \n{json.dumps(test_ip_list, indent=4)}")
-print(f"ioc list: \n{json.dumps(ioc_list, indent=4)}")
+def main():
+    # a list including ioc dictionaries
+    ioc_list = get_ioc_dict()
+    # a list including abuse db ips
+    test_ip_list = get_test_ip_list()
 
-abuseipdb_results = check_ips_abuseipdb(test_ip_list, AbuseIPDB_API_KEY)
-print(f"abuseipdb results (sorted): \n{json.dumps(abuseipdb_results, indent=4)}")
+    # print the test ip list and ioc list
+    print(f"test ip list: \n{json.dumps(test_ip_list, indent=4)}")
+    print(f"ioc list: \n{json.dumps(ioc_list, indent=4)}")
+
+    # check the IPs using AbuseIPDB API
+    abuseipdb_results = check_ips_abuseipdb(test_ip_list, AbuseIPDB_API_KEY)
+    # print the abuseipdb results
+    print(f"abuseipdb results (sorted): \n{json.dumps(abuseipdb_results, indent=4)}")
+
+    # save the log
+    save_log(abuseipdb_results)
+
+if __name__ == "__main__":
+    main()
