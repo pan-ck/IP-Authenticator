@@ -32,6 +32,17 @@ def extract_API_data(response: dict) -> dict:
         'countryCode': data['countryCode'],
     }
 
+# a function to sort the API data result by score then countryCode
+def sort_API_data(data_list: list) -> list:
+    sorted_data = sorted(
+        data_list,
+        key = lambda data:(
+            int(data['abuseConfidenceScore']),
+            data['countryCode'].lower(),
+        )
+    )
+    return sorted_data
+
 # function to check the list of ips against the AbuseIPDB API
 def check_ips_abuseipdb(ips: list, api_key: str) -> list:
     headers = {
@@ -50,6 +61,7 @@ def check_ips_abuseipdb(ips: list, api_key: str) -> list:
             results.append(extract_API_data(response))
     except Exception as e:
         print(f"Error when checking the ips with AbuseIPDB API: {e}")
+    results = sort_API_data(results)
     return results
 
 # function to get the ioc list from the csv file
@@ -84,4 +96,4 @@ print(f"test ip list: \n{json.dumps(test_ip_list, indent=4)}")
 print(f"ioc list: \n{json.dumps(ioc_list, indent=4)}")
 
 abuseipdb_results = check_ips_abuseipdb(test_ip_list, AbuseIPDB_API_KEY)
-print(f"abuseipdb results: \n{json.dumps(abuseipdb_results, indent=4)}")
+print(f"abuseipdb results (sorted): \n{json.dumps(abuseipdb_results, indent=4)}")
